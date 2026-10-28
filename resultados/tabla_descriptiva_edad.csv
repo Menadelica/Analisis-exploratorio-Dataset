@@ -1,0 +1,19 @@
+﻿Medida,Valor
+n (válidos),2111
+Media,24.32
+Mediana,23.00
+Moda,21
+Mínimo,14
+Máximo,61
+Rango,47
+Q1 (25 %),20.00
+Q3 (75 %),26.00
+IQR (Q3 - Q1),6.00
+Varianza (muestral),40.41
+Desviación estándar (muestral),6.36
+Coeficiente de variación (%),26.14
+Error estándar de la media,0.138
+IC 95 % — límite inferior,24.04
+IC 95 % — límite superior,24.59
+Asimetría,1.521
+Curtosis (exceso),2.799
