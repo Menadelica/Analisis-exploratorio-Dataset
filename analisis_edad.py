@@ -38,6 +38,8 @@
 # cuaderno y se crean las carpetas donde se guardarán las figuras y las tablas
 # de resultados. Todos los valores quedan reproducibles: no se usan datos
 # aleatorios ni semillas ocultas.
+# Si alguna librería no está instalada, ejecutar en la terminal:
+# python -m pip install pandas numpy matplotlib seaborn scipy
 
 # %%
 from __future__ import annotations
@@ -58,13 +60,21 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
-# Rutas del proyecto (funciona igual como script y como notebook)
+# Rutas del proyecto (funciona igual como script y como notebook). Primero se
+# busca el CSV junto al proyecto; si no está allí, se busca en Descargas.
 try:
     BASE = Path(__file__).resolve().parent
 except NameError:
     BASE = Path.cwd()
 
-DATA = BASE / "data" / "ObesityDataSet_raw_and_data_sinthetic.csv"
+NOMBRE_CSV = "ObesityDataSet_raw_and_data_sinthetic.csv"
+RUTAS_CSV = [BASE / "data" / NOMBRE_CSV, Path.home() / "Downloads" / NOMBRE_CSV]
+DATA = next((ruta for ruta in RUTAS_CSV if ruta.exists()), RUTAS_CSV[0])
+if not DATA.exists():
+    raise FileNotFoundError(
+        "No se encontró el CSV. Colócalo en la carpeta 'data' del proyecto "
+        f"o en Descargas. Rutas revisadas: {RUTAS_CSV}"
+    )
 FIG = BASE / "figuras"
 RES = BASE / "resultados"
 FIG.mkdir(exist_ok=True)
@@ -139,6 +149,7 @@ def anotar(texto: str) -> None:
 
 # %%
 df = pd.read_csv(DATA)
+filas_originales, columnas_originales = df.shape
 
 print(f"Filas: {df.shape[0]:,}   Columnas: {df.shape[1]}")
 print(f"Memoria: {df.memory_usage(deep=True).sum() / 1024:.1f} KB")
@@ -193,13 +204,13 @@ df["Nivel_Obesidad"] = df["NObeyesdad"].map({
 df["IMC"] = df["Weight"] / df["Height"] ** 2
 
 anotar(
-    f"El dataset contiene {len(df):,} registros y {df.shape[1]} variables. "
-    f"No presenta valores faltantes y se identificaron {duplicados} registros "
-    "duplicados exactos, que se conservan porque el archivo combina datos "
-    "reales con datos sintéticos y un mismo perfil puede corresponder a dos "
-    "personas distintas; eliminarlos alteraría la distribución original. "
-    "La variable Age no requiere imputación, lo que permite trabajar con la "
-    "totalidad de la muestra."
+    f"El dataset original contiene {filas_originales:,} registros y "
+    f"{columnas_originales} variables. "
+    f"Se encontraron {int(df.isna().sum().sum())} valores faltantes y "
+    f"{duplicados} registros duplicados exactos. Los duplicados se reportan, "
+    "pero no se eliminan automáticamente: el archivo no incluye un identificador "
+    "que permita confirmar si son errores o registros válidos. La variable Age "
+    "no presenta datos faltantes, por lo que se analiza completa."
 )
 
 # %% [markdown]
@@ -328,8 +339,9 @@ tabla_freq.to_csv(RES / "tabla_frecuencias_edad.csv", index=False, encoding="utf
 grupo_top = tabla_freq.loc[tabla_freq["fa"].idxmax()]
 print(f"\nRango más frecuente: {grupo_top['Rango de edad']} años, con "
       f"{grupo_top['fa']} personas ({grupo_top['fr (%)']} %).")
-print(f"Menores de 26 años: {tabla_freq.loc[:3, 'fa'].sum()} personas "
-      f"({tabla_freq.loc[:3, 'Fr acumulada (%)'].iloc[-1]} % de la muestra).")
+menores_26 = int((edad < 26).sum())
+print(f"Menores de 26 años: {menores_26} personas "
+      f"({menores_26 / n * 100:.1f} % de la muestra).")
 
 # %%
 p26 = (edad <= 26).mean() * 100
@@ -380,9 +392,10 @@ anotar(
     f"Con la regla de Tukey se identifican {int(mascara_iqr.sum())} personas "
     f"({mascara_iqr.mean() * 100:.1f} %) con edades superiores a "
     f"{limite_sup:.0f} años, y {n_z3} casos superan tres desviaciones estándar "
-    f"(z > 3). Se trata de registros plausibles (adultos de hasta {maximo:.0f} "
-    "años) y no de errores de captura, por lo que se conservan: eliminarlos "
-    "sesgaría la muestra hacia la población joven y ocultaría al grupo de mayor "
+    f"(z > 3). Son edades plausibles, pero el criterio estadístico por sí solo "
+    "no permite confirmar si algún registro es un error de captura; por eso se "
+    "conservan y se documentan, en lugar de eliminarlos automáticamente. "
+    "Excluirlos sesgaría la muestra hacia la población joven y ocultaría al grupo de mayor "
     f"edad. La asimetría positiva ({asimetria:.2f}) y la curtosis "
     f"({curtosis:.2f}) son la huella estadística de esa cola derecha."
 )
@@ -404,7 +417,7 @@ ax.axvline(media, color=NARANJA, linestyle="--", linewidth=2,
            label=f"Media = {media:.2f} años")
 ax.axvline(mediana, color="#264653", linestyle=":", linewidth=2,
            label=f"Mediana = {mediana:.2f} años")
-ax.set(title="Distribución de la edad de la muestra (n = 2.111)",
+ax.set(title=f"Distribución de la edad de la muestra (n = {n:,})",
        xlabel="Edad (años)", ylabel="Frecuencia absoluta")
 ax.set_xlim(12, 63)
 ax.legend(frameon=True, loc="upper right")
@@ -422,9 +435,8 @@ anotar(
     f"alrededor de los {moda:.0f} años) y una cola que se extiende hacia la "
     "derecha hasta los 61 años. La curva de densidad confirma una forma "
     "unimodal con asimetría positiva: la media queda a la derecha de la mediana. "
-    "No se observan huecos ni concentraciones anómalas que sugieran errores de "
-    "registro, y la forma es coherente con una muestra de estudiantes y adultos "
-    "jóvenes."
+    "La forma describe esta muestra, que está compuesta principalmente por "
+    "personas jóvenes; no basta para concluir que representa a la población general."
 )
 
 # %% [markdown]
@@ -606,10 +618,11 @@ anotar(
     f"(mediana {femenino.median():.0f}) y los hombres de {masculino.mean():.2f} "
     f"años (mediana {masculino.median():.0f}). La prueba de Mann-Whitney detecta "
     f"una diferencia estadísticamente significativa (p = {mw.pvalue:.4f}), pero su "
-    "magnitud es inferior a un año y los diagramas de caja se superponen casi por "
-    "completo. En un tamaño muestral grande, diferencias mínimas alcanzan "
-    "significancia: el hallazgo debe leerse como irrelevante en la práctica. La "
-    "estructura etaria es, por tanto, equivalente en ambos géneros."
+    "magnitud es pequeña (la diferencia entre las medias es de "
+    f"{abs(masculino.mean() - femenino.mean()):.2f} años) y los diagramas de caja "
+    "se superponen ampliamente. Esto ilustra que significancia estadística no "
+    "implica necesariamente una diferencia importante en la práctica; sin una "
+    "prueba de equivalencia, no corresponde afirmar que ambos grupos sean idénticos."
 )
 
 # %% [markdown]
@@ -746,9 +759,10 @@ anotar(
     "En la matriz destaca la correlación casi perfecta entre peso e IMC "
     f"(ρ = {corr.loc['Peso', 'IMC']:.2f}), esperable porque el IMC se calcula a "
     "partir del peso, por lo que una de las dos variables es redundante en "
-    "cualquier modelo. La edad no correlaciona con la estatura "
-    f"(ρ = {corr.loc['Edad', 'Estatura']:.2f}), coherente con una muestra de "
-    "adultos que ya alcanzaron su talla final, y sus asociaciones más altas son "
+    "cualquier modelo. La correlación entre edad y estatura es prácticamente "
+    f"nula en esta muestra (ρ = {corr.loc['Edad', 'Estatura']:.2f}); este dato "
+    "no permite afirmar que ocurra lo mismo en otras poblaciones. Las asociaciones "
+    "más altas de la edad son "
     f"con el IMC (ρ = {corr.loc['Edad', 'IMC']:.2f}) y el peso "
     f"(ρ = {corr.loc['Edad', 'Peso']:.2f}). También aparecen correlaciones "
     f"negativas débiles con el tiempo de pantalla (ρ = {corr.loc['Edad', 'Pantallas']:.2f}) "
@@ -788,8 +802,10 @@ resumen_final = pd.DataFrame({
         f"{curtosis:.2f}",
         f"{int(mascara_iqr.sum())} ({mascara_iqr.mean() * 100:.1f} %)",
         f"{shapiro.pvalue:.1e} → no normal",
-        f"{mw.pvalue:.3f} → sin diferencia",
-        f"{kw.pvalue:.2f} → sin diferencia",
+        f"p = {mw.pvalue:.3g}; "
+        f"{'diferencia significativa' if mw.pvalue < 0.05 else 'sin diferencia significativa'}",
+        f"p = {kw.pvalue:.3g}; "
+        f"{'diferencias significativas entre grupos' if kw.pvalue < 0.05 else 'sin diferencias significativas'}",
         f"{pearson.statistic:.2f} → débil",
     ],
 })
@@ -799,9 +815,9 @@ resumen_final.to_csv(RES / "resumen_final.csv", index=False, encoding="utf-8-sig
 # %%
 conclusiones = [
     "1. La muestra es marcadamente joven: la edad media es de "
-    f"{media:.1f} años y la mediana de {mediana:.0f}, con el 88 % de los casos "
-    "por debajo de los 31 años. Cualquier modelo o política basada en estos "
-    "datos describe principalmente a población adolescente y adulta joven.",
+    f"{media:.1f} años y la mediana de {mediana:.0f}; el {p30:.1f} % tiene 30 años "
+    "o menos. Por tanto, este conjunto describe principalmente a población "
+    "adolescente y adulta joven, no necesariamente a la población general.",
     "2. La distribución de la edad no es normal: presenta asimetría positiva "
     f"({asimetria:.2f}) y curtosis ({curtosis:.2f}), confirmadas por el histograma, "
     "el Q-Q plot y las pruebas de Shapiro-Wilk, D'Agostino-Pearson y "
@@ -809,22 +825,23 @@ conclusiones = [
     "para describirla.",
     "3. La dispersión es moderada (DE = "
     f"{desv:.1f} años; CV = {cv:.1f} %), pero el 50 % central se concentra en "
-    f"solo {iqr:.0f} años ({q1:.0f} a {q3:.0f}), lo que refleja alta homogeneidad "
-    "del grupo de estudio.",
-    "4. Los "
-    f"{int(mascara_iqr.sum())} valores atípicos corresponden a personas de 36 a "
-    "61 años. No son errores: representan a la población adulta, minoritaria en "
-    "el dataset, y deben conservarse para no sesgar el análisis.",
-    "5. La edad no se asocia con el género (Mann-Whitney, p = "
-    f"{mw.pvalue:.3f}) ni con el nivel de obesidad (Kruskal-Wallis, p = "
-    f"{kw.pvalue:.2f}), y su correlación con el IMC es débil (r = "
-    f"{pearson.statistic:.2f}). El estado nutricional de esta muestra se explica "
-    "por hábitos y condición física, no por la edad.",
-    "6. Implicación para la toma de decisiones: las intervenciones de "
-    "prevención del sobrepeso deben diseñarse para población joven y no "
-    "segmentarse por edad; además, el análisis debe complementarse con las "
-    "variables de hábitos (alimentación, actividad física, agua y uso de "
-    "pantallas), que son las que muestran mayor capacidad explicativa.",
+    f"solo {iqr:.0f} años ({q1:.0f} a {q3:.0f}), lo que muestra una concentración "
+    "de edades en el centro de la muestra.",
+    "4. El criterio de Tukey marca "
+    f"{int(mascara_iqr.sum())} edades como atípicas, entre "
+    f"{atipicos['Age'].min():.0f} y {atipicos['Age'].max():.0f} años. Son valores "
+    "plausibles; ser atípico no demuestra que un dato sea erróneo. Se conservan "
+    "y se documentan para no alterar la distribución sin una razón adicional.",
+    "5. Mann-Whitney encuentra una diferencia estadísticamente significativa "
+    f"de edad por género (p = {mw.pvalue:.3g}), aunque pequeña en magnitud. "
+    "Kruskal-Wallis también detecta diferencias entre niveles de obesidad "
+    f"(p = {kw.pvalue:.3g}). La correlación lineal edad-IMC es positiva pero "
+    f"baja (r = {pearson.statistic:.2f}). Estos resultados describen asociaciones "
+    "en este dataset; no demuestran causalidad.",
+    "6. Para tomar decisiones fuera de este ejercicio se necesitarían datos "
+    "representativos de la población objetivo. El archivo incluye datos "
+    "sintéticos según su nombre/documentación, por lo que sus proporciones y "
+    "asociaciones no deben generalizarse automáticamente."
 ]
 for c in conclusiones:
     print(c + "\n")

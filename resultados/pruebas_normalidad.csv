@@ -1,0 +1,4 @@
+﻿Prueba,Estadístico,p-valor,Valor crítico (5 %),Conclusión
+Shapiro-Wilk,0.8655,3.066e-39,—,Rechaza normalidad
+D'Agostino-Pearson (K²),594.9290,6.498e-130,—,Rechaza normalidad
+Anderson-Darling,82.1657,—,0.7520,Rechaza normalidad

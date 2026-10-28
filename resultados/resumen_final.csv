@@ -1,0 +1,16 @@
+﻿Indicador,Resultado
+Tamaño de la muestra,2111 personas
+Edad media (IC 95 %),24.32 años (24.04 – 24.59)
+Mediana,23 años
+Moda,21 años
+Desviación estándar,6.36 años
+Coeficiente de variación,26.1 %
+Rango,14 – 61 años
+IQR,6.0 años
+Asimetría,1.52 (positiva)
+Curtosis,2.80
+Atípicos (Tukey),160 (7.6 %)
+Normalidad (Shapiro-Wilk p),3.1e-39 → no normal
+Diferencia por género (p),p = 0.0015; diferencia significativa
+Diferencia por obesidad (p),p = 9.75e-115; diferencias significativas entre grupos
+Correlación edad-IMC (r),0.25 → débil
