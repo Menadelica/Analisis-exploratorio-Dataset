@@ -2,8 +2,7 @@
 
 **Curso:** Fundamentos de análisis cuantitativo  
 **Actividad:** Tarea 3  
-**Estudiante:** [Escribe tu nombre]
-
+**Estudiante:** Leidy Jimena Noreña Quiceno
 ## Presentación
 
 Este proyecto realiza un análisis descriptivo de la variable **edad** usando el conjunto de datos sobre niveles de obesidad, hábitos alimenticios y condición física. El análisis se desarrolló en Python y presenta tablas, gráficos e interpretaciones de los resultados.
@@ -32,4 +31,6 @@ El código busca el archivo CSV en `data/` o en la carpeta Descargas. Al finaliz
 
 El archivo incluye datos sintéticos. Por ello, los resultados describen este conjunto de datos y no deben interpretarse como prueba de causalidad ni generalizarse automáticamente a toda la población.
 
-**Fuente de los datos:** conjunto *Dataset for estimation of obesity levels based on eating habits and physical condition in individuals from Colombia, Peru and Mexico*, disponible en Kaggle. Añade en la entrega el enlace exacto de la página consultada y completa la referencia según las normas APA.
+**Fuente de los datos:** conjunto *Dataset for estimation of obesity levels based on eating habits and physical condition in individuals from Colombia, Peru and Mexico*, disponible en Kaggle: 
+
+https://www.kaggle.com/datasets/adeniranstephen/obesity-prediction-dataset
